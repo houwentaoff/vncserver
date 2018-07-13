@@ -166,9 +166,9 @@ static void init_touch()
     ymin = info.minimum;
     ymax = info.maximum;
 #endif
-    xmin = 1024;
+    xmin = 0;
     xmax = 1024;
-    ymin = 768;
+    ymin = 0;
     ymax = 768;
     printf("	ymin:  %d\n", (int)ymin);
     printf("	ymax: %d\n", (int)ymax);
@@ -200,8 +200,20 @@ static void init_fb_server(int argc, char **argv)
     assert(fbbuf != NULL);
 
     /* TODO: This assumes scrinfo.bits_per_pixel is 16. */
-    vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 5, 6, 4);
-    //vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 5, 2, 4);
+    //vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 5, 6, 4);
+    // rfbScreenInfoPtr rfbGetScreen(int* argc,char** argv,
+    //        int width,int height,int bitsPerSample,int samplesPerPixel,
+    //        int bytesPerPixel)
+
+    /*-----------------------------------------------------------------------------
+     *  To make a server, you just have to initialise a server structure using the 
+     *  function rfbDefaultScreenInit, like rfbScreenInfoPtr 
+     *  rfbScreen = rfbGetScreen(argc,argv,width,height,8,3,bpp); where byte per pixel
+     *  should be 1, 2 or 4. If performance doesn't matter, you may try bpp=3 
+     *  (internally one cannot use native data types in this case; if you want to 
+     *  use this, look at pnmshow24).
+     *-----------------------------------------------------------------------------*/
+    vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 8, 3, 3);
     assert(vncscr != NULL);
 
     vncscr->desktopName = "Android";
@@ -407,8 +419,8 @@ static void update_screen(void)
     {
         /* Compare every 2 pixels at a time, assuming that changes are likely
          * in pairs. */
-        //for (x = 0; x < scrinfo.xres; x += 2) //修改了
-        for (x = 0; x < scrinfo.xres; x += 1)
+        for (x = 0; x < scrinfo.xres; x += 2) //修改了
+        //for (x = 0; x < scrinfo.xres; x += 1)
         {
             unsigned int pixel = *f;
 
