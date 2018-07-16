@@ -53,11 +53,16 @@ static unsigned short int *fbbuf;
 
 /* Android already has 5900 bound natively. */
 #define VNC_PORT 5901
+
 static rfbScreenInfoPtr vncscr;
 
 static int xmin, xmax;
 static int ymin, ymax;
 
+static int bitPerSample = 8;
+static int samplesPerPixel = 3;
+static int bytesPerPixel = 3;
+static int port = VNC_PORT;
 /* No idea, just copied from fbvncserver as part of the frame differerencing
  * algorithm.  I will probably be later rewriting all of this. */
 static struct varblock_t
@@ -213,14 +218,14 @@ static void init_fb_server(int argc, char **argv)
      *  (internally one cannot use native data types in this case; if you want to 
      *  use this, look at pnmshow24).
      *-----------------------------------------------------------------------------*/
-    vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, 8, 3, 3);
+    vncscr = rfbGetScreen(&argc, argv, scrinfo.xres, scrinfo.yres, bitPerSample, samplesPerPixel, bytesPerPixel);
     assert(vncscr != NULL);
 
     vncscr->desktopName = "Android";
     vncscr->frameBuffer = (char *)vncbuf;
     vncscr->alwaysShared = TRUE;
     vncscr->httpDir = NULL;
-    vncscr->port = VNC_PORT;
+    vncscr->port = port;//VNC_PORT;
 
     vncscr->kbdAddEvent = keyevent;
     vncscr->ptrAddEvent = ptrevent;
@@ -507,6 +512,16 @@ int main(int argc, char **argv)
                         i++;
                         strcpy(TOUCH_DEVICE, argv[i]);
                         break;
+                    case 'f':
+                        i++;
+                        bitPerSample = atoi(argv[i++]);
+                        samplesPerPixel = atoi(argv[i++]);
+                        bytesPerPixel = atoi(argv[i]);
+                        break;
+                    case 'p':
+                        i++;
+                        port = atoi(argv[i++]);
+                        break;
                 }
             }
             i++;
@@ -525,7 +540,7 @@ int main(int argc, char **argv)
     printf("	width:  %d\n", (int)scrinfo.xres);
     printf("	height: %d\n", (int)scrinfo.yres);
     printf("	bpp:    %d\n", (int)scrinfo.bits_per_pixel);
-    printf("	port:   %d\n", (int)VNC_PORT);
+    printf("	port:   %d\n", (int)port);
     init_fb_server(argc, argv);
 
     /* Implement our own event loop to detect changes in the framebuffer. */
