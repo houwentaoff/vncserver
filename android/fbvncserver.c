@@ -40,7 +40,7 @@
 /*****************************************************************************/
 
 /* Android does not use /dev/fb0. */
-#define FB_DEVICE "/dev/graphics/fb0"
+#define FB_DEVICE "/dev/fb0"
 static char KBD_DEVICE[256] = "/dev/input/event2";
 static char TOUCH_DEVICE[256] = "/dev/input/event1";
 static struct fb_var_screeninfo scrinfo;
@@ -172,9 +172,9 @@ static void init_touch()
     ymax = info.maximum;
 #endif
     xmin = 0;
-    xmax = 1024;
+    xmax = 1600;
     ymin = 0;
-    ymax = 768;
+    ymax = 900;
     printf("	ymin:  %d\n", (int)ymin);
     printf("	ymax: %d\n", (int)ymax);
 
@@ -236,9 +236,9 @@ static void init_fb_server(int argc, char **argv)
     rfbMarkRectAsModified(vncscr, 0, 0, scrinfo.xres, scrinfo.yres);
 
     /* No idea. */
-    varblock.r_offset = scrinfo.red.offset + scrinfo.red.length - 5;
-    varblock.g_offset = scrinfo.green.offset + scrinfo.green.length - 5;
-    varblock.b_offset = scrinfo.blue.offset + scrinfo.blue.length - 5;
+    varblock.r_offset = scrinfo.red.offset + scrinfo.red.length - bitPerSample;//5;
+    varblock.g_offset = scrinfo.green.offset + scrinfo.green.length - bitPerSample;
+    varblock.b_offset = scrinfo.blue.offset + scrinfo.blue.length - bitPerSample;
     varblock.rfb_xres = scrinfo.yres;
     varblock.rfb_maxy = scrinfo.xres - 1;
 }
@@ -405,8 +405,9 @@ From: http://www.vislab.usyd.edu.au/blogs/index.php/2009/05/22/an-headerless-ind
         injectTouchEvent(0, x, y);
     } 
 }
-
-#define PIXEL_FB_TO_RFB(p,r,g,b) ((p>>r)&0x1f001f)|(((p>>g)&0x1f001f)<<5)|(((p>>b)&0x1f001f)<<10)
+#define COLOR_MASK (( (1<<bitPerSample)<<1) - 1)
+#define COLOR_MASK2  0x1f001f            /*  */
+#define PIXEL_FB_TO_RFB(p,r,g,b) ((p>>r)&COLOR_MASK)|(((p>>g)&COLOR_MASK)<<bitPerSample)|(((p>>b)&COLOR_MASK)<<bitPerSample*2)
 
 static void update_screen(void)
 {
@@ -424,8 +425,8 @@ static void update_screen(void)
     {
         /* Compare every 2 pixels at a time, assuming that changes are likely
          * in pairs. */
-        for (x = 0; x < scrinfo.xres; x += 2) //修改了
-        //for (x = 0; x < scrinfo.xres; x += 1)
+        //for (x = 0; x < scrinfo.xres; x += 2) //修改了
+        for (x = 0; x < scrinfo.xres; x += 1)
         {
             unsigned int pixel = *f;
 
@@ -435,9 +436,10 @@ static void update_screen(void)
 
                 /* XXX: Undo the checkered pattern to test the efficiency
                  * gain using hextile encoding. */
+                /*  
                 if (pixel == 0x18e320e4 || pixel == 0x20e418e3)
                     pixel = 0x18e318e3;
-
+                */
                 *r = PIXEL_FB_TO_RFB(pixel,
                         varblock.r_offset, varblock.g_offset, varblock.b_offset);
 
@@ -486,7 +488,7 @@ void print_usage(char **argv)
     printf("%s [-k device] [-t device] [-h]\n"
             "-k device: keyboard device node, default is /dev/input/event3\n"
             "-t device: touch device node, default is /dev/input/event1\n"
-            "-h : print this help\n");
+            "-h : print this help\n", argv[0]);
 }
 
 int main(int argc, char **argv)
